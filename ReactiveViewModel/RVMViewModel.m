@@ -32,6 +32,7 @@ static const NSTimeInterval RVMViewModelInactiveThrottleInterval = 1;
 // memory-conscious as possible.
 @synthesize didBecomeActiveSignal = _didBecomeActiveSignal;
 @synthesize didBecomeInactiveSignal = _didBecomeInactiveSignal;
+@synthesize isActiveSignal = _isActiveSignal;
 
 - (void)setActive:(BOOL)active {
 	// Skip KVO notifications when the property hasn't actually changed. This is
@@ -92,12 +93,20 @@ static const NSTimeInterval RVMViewModelInactiveThrottleInterval = 1;
 
 	_model = model;
 
-	_isActiveSignal = [[[RACObserve(self, active) ignore:nil] skip:1] replayLast];
-
 	return self;
 }
 
 #pragma mark Activation
+- (RACSignal *)isActiveSignal {
+	if (_isActiveSignal == nil) {
+		_isActiveSignal = [[[RACObserve(self, active)
+			ignore:nil]
+			skip:1]
+			replayLast];
+	}
+
+	return _isActiveSignal;
+}
 
 - (RACSignal *)forwardSignalWhileActive:(RACSignal *)signal {
 	NSParameterAssert(signal != nil);

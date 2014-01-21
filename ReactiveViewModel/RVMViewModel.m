@@ -32,6 +32,7 @@ static const NSTimeInterval RVMViewModelInactiveThrottleInterval = 1;
 // memory-conscious as possible.
 @synthesize didBecomeActiveSignal = _didBecomeActiveSignal;
 @synthesize didBecomeInactiveSignal = _didBecomeInactiveSignal;
+@synthesize isActiveSignal = _isActiveSignal;
 
 - (void)setActive:(BOOL)active {
 	// Skip KVO notifications when the property hasn't actually changed. This is
@@ -48,7 +49,7 @@ static const NSTimeInterval RVMViewModelInactiveThrottleInterval = 1;
 	if (_didBecomeActiveSignal == nil) {
 		@weakify(self);
 
-		_didBecomeActiveSignal = [[[RACObserve(self, active)
+		_didBecomeActiveSignal = [[[self.isActiveSignal
 			filter:^(NSNumber *active) {
 				return active.boolValue;
 			}]
@@ -66,7 +67,7 @@ static const NSTimeInterval RVMViewModelInactiveThrottleInterval = 1;
 	if (_didBecomeInactiveSignal == nil) {
 		@weakify(self);
 
-		_didBecomeInactiveSignal = [[[RACObserve(self, active)
+		_didBecomeInactiveSignal = [[[self.isActiveSignal
 			filter:^ BOOL (NSNumber *active) {
 				return !active.boolValue;
 			}]
@@ -81,12 +82,19 @@ static const NSTimeInterval RVMViewModelInactiveThrottleInterval = 1;
 }
 
 #pragma mark Activation
+- (RACSignal *)isActiveSignal {
+	if (_isActiveSignal == nil) {
+		_isActiveSignal = [RACObserve(self, active) ignore:nil];
+	}
+
+	return _isActiveSignal;
+}
 
 - (RACSignal *)forwardSignalWhileActive:(RACSignal *)signal {
 	NSParameterAssert(signal != nil);
 
 	// Sends NO when the receiver is deallocated.
-	RACSignal *active = [RACObserve(self, active)
+	RACSignal *active = [self.isActiveSignal
 		concat:[RACSignal return:@NO]];
 
 	return [[RACSignal
@@ -102,7 +110,7 @@ static const NSTimeInterval RVMViewModelInactiveThrottleInterval = 1;
 			// Materialize the input signals so that we can finish when either
 			// of them finish. (Normally, `completed` events aren't observable
 			// through +combineLatest: like this.)
-			[RACObserve(self, active) materialize],
+			[self.isActiveSignal materialize],
 			[signal materialize]
 		] reduce:^(RACEvent *activeEvent, RACEvent *signalEvent) {
 			// Pass through termination events immediately.

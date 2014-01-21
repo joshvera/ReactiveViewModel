@@ -22,6 +22,12 @@
 // This property defaults to NO.
 @property (nonatomic, assign, getter = isActive) BOOL active;
 
+// Sends the receiver's `active` property.
+//
+// If the receiver is currently active, this signal will send once immediately
+// upon subscription.
+@property (nonatomic, strong, readonly) RACSignal *isActiveSignal;
+
 // Observes the receiver's `active` property, and sends the receiver whenever it
 // changes from NO to YES.
 //
